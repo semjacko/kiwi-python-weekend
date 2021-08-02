@@ -4,7 +4,7 @@
 
 # Usage
 
-solution <dataset> <origin> <destination> [options]...
+solution \<dataset\> \<origin\> \<destination\> [options]...
 
 # Required arguments
 
