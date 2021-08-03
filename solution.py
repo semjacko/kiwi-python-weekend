@@ -7,6 +7,9 @@ from datetime import datetime, timedelta
 
 
 USAGE_STR = '\n\n USAGE:\n\n solution <input_csv> <origin> <destination> [-b BAGS_NUMBER] [-c MAX_CHANGES] [-m MIN_DAYS_STAY] [-l MAX_DAYS_STAY] [-r]\n\n'
+MAX_DAYS_ERR = '\n Max days cannot be less than min days.\n If not specified, the default value for max days is 10.\n'
+AIRPORTS_ERR = '\n One of these airports does not exist :(\n'
+INPUT_FILE_ERR = '\n The input file either does not exist or is in the wrong format :(\n'
 
 
 def find_paths(
@@ -126,26 +129,30 @@ def create_airports(csv_filename):
     # Dictionary of airports
     airports = {}
     
-    with open(csv_filename, 'r') as f:
-        reader = csv.reader(f)
-        next(reader) # skip header
-        
-        for row in reader:
-            flight_no = row[0]
-            origin = row[1]
-            destination = row[2]
-            departure = row[3]
-            arrival = row[4]
-            base_price = row[5]
-            bag_price = row[6]
-            bags_allowed = row[7]
+    try:
+        with open(csv_filename, 'r') as f:
+            reader = csv.reader(f)
+            next(reader) # skip header
             
-            if not airports.get(origin):
-                airports[origin] = Airport(origin)
-            if not airports.get(destination):
-                airports[destination] = Airport(destination)
+            for row in reader:
+                flight_no = row[0]
+                origin = row[1]
+                destination = row[2]
+                departure = row[3]
+                arrival = row[4]
+                base_price = row[5]
+                bag_price = row[6]
+                bags_allowed = row[7]
                 
-            airports[origin].add_flight(airports[destination], flight_no, departure, arrival, base_price, bag_price, bags_allowed)
+                if not airports.get(origin):
+                    airports[origin] = Airport(origin)
+                if not airports.get(destination):
+                    airports[destination] = Airport(destination)
+                    
+                airports[origin].add_flight(airports[destination], flight_no, departure, arrival, base_price, bag_price, bags_allowed)
+    except:
+        print(INPUT_FILE_ERR)
+        sys.exit(2)
 
     return airports
 
@@ -162,7 +169,7 @@ def main(argv):
         csv_file = argv[0]
         origin = argv[1]
         destination = argv[2]
-        opts, args = getopt.getopt(argv[3:], 'hb:c:m:l:r', ['bags=', 'changes=', 'mindays=', 'maxdays=', 'return'])
+        opts, args = getopt.getopt(argv[3:], 'hb:c:d:l:r', ['bags=', 'changes=', 'mindays=', 'maxdays=', 'return'])
     except (IndexError, getopt.GetoptError):
         print(USAGE_STR)
         sys.exit(2)
@@ -182,9 +189,19 @@ def main(argv):
         elif opt in ('-l', '--maxdays'):
             max_days_to_stay = int(arg)
 
+    if max_days_to_stay < min_days_to_stay:
+        print(MAX_DAYS_ERR)
+        sys.exit(2)
+
     airports = create_airports(csv_file)
 
-    paths = find_paths(airports[origin], airports[destination], bags, max_changes, min_days_to_stay, max_days_to_stay, return_flight)
+    try:
+        origin_airport, destination_airport = airports[origin], airports[destination]
+    except:
+        print(AIRPORTS_ERR)
+        sys.exit(2)
+
+    paths = find_paths(origin_airport, destination_airport, bags, max_changes, min_days_to_stay, max_days_to_stay, return_flight)
     
     output = create_output(paths, bags)
 
